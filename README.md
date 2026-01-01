@@ -1,14 +1,108 @@
-<img width="960" height="540" alt="1" src="https://github.com/user-attachments/assets/9d82119c-4295-4a60-b0fb-e635a224f713" />
-<img width="960" height="540" alt="2" src="https://github.com/user-attachments/assets/263e92cf-3b39-4747-aada-ef2d554fa69d" />
-<img width="960" height="540" alt="3" src="https://github.com/user-attachments/assets/eb2eb133-0dfd-4567-a405-d94407a422f0" />
-<img width="960" height="540" alt="4" src="https://github.com/user-attachments/assets/00c13748-9814-46cb-a586-ace9a46e9ff2" />
-<img width="960" height="540" alt="5" src="https://github.com/user-attachments/assets/3917abd1-f05d-4533-8396-968140a3c914" />
-<img width="960" height="540" alt="6" src="https://github.com/user-attachments/assets/9941fcb9-0e13-41af-b955-64866821ee5f" />
-<img width="960" height="540" alt="7" src="https://github.com/user-attachments/assets/75db8f31-35fd-42e7-a927-5331f26dcbe5" />
-<img width="960" height="540" alt="8" src="https://github.com/user-attachments/assets/b26be33e-fcba-4e9c-83df-0bb034dade46" />
-<img width="960" height="540" alt="9" src="https://github.com/user-attachments/assets/6b7fabcc-c579-4a9c-8d40-2ba27bed3b96" />
-<img width="960" height="540" alt="10" src="https://github.com/user-attachments/assets/e5898054-8790-415f-9d75-3dbce9925a27" />
-<img width="960" height="540" alt="11" src="https://github.com/user-attachments/assets/030a1d68-f53e-4bb8-a07c-7a604f94e5c8" />
-<img width="960" height="540" alt="12" src="https://github.com/user-attachments/assets/f7d05426-45b8-426b-ab9a-c28279125394" />
-<img width="960" height="540" alt="13" src="https://github.com/user-attachments/assets/771a1e5e-058d-4029-8082-43ec9ddb90b4" />
-<img width="960" height="540" alt="14" src="https://github.com/user-attachments/assets/af64ef29-a3cd-496b-a5e5-109c1961db8f" />
+# Test de Charge et Observabilité
+
+Projet de démonstration de test de charge et observabilité dans une architecture microservices avec gestion de concurrence.
+
+## Description
+
+Ce projet illustre la gestion de la concurrence dans un système de réservation de livres avec plusieurs instances de service. Il démontre l'utilisation de verrous de base de données (SELECT FOR UPDATE) pour éviter les conditions de course lors d'emprunts concurrents.
+
+## Technologies
+
+- **Java** (Spring Boot)
+- **MySQL** 8.4
+- **Docker** & Docker Compose
+- **Spring Boot Actuator** (pour l'observabilité)
+- **Resilience4j** (circuit breaker, retry)
+
+## Architecture
+
+- **book-service** : Service de gestion des livres (3 instances sur ports 8081, 8083, 8084)
+- **pricing-service** : Service de calcul de prix (port 8082)
+- **MySQL** : Base de données (port 3306)
+
+## Installation
+
+### Prérequis
+
+- Docker et Docker Compose
+- Git
+
+### Démarrage
+
+1. Cloner le repository :
+```bash
+git clone https://github.com/OsamaMansouri/Test-de-charge-Observability.git
+cd Test-de-charge-Observability
+```
+
+2. Démarrer les services :
+```bash
+docker compose up -d --build
+```
+
+3. Vérifier que tous les services sont UP :
+```bash
+curl -s http://localhost:8082/actuator/health
+curl -s http://localhost:8081/actuator/health
+curl -s http://localhost:8083/actuator/health
+curl -s http://localhost:8084/actuator/health
+```
+
+Chaque commande doit renvoyer `{"status":"UP"}`.
+
+## Utilisation
+
+### Créer un livre
+
+```bash
+curl -X POST http://localhost:8081/api/books \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Test Book","author":"Author Name","stock":10}'
+```
+
+### Emprunter un livre
+
+```bash
+curl -X POST http://localhost:8081/api/books/1/borrow
+```
+
+### Test de charge
+
+Utiliser les scripts fournis pour tester la concurrence :
+
+**Linux/Mac :**
+```bash
+./loadtest.sh [BOOK_ID] [REQUESTS]
+```
+
+**Windows :**
+```powershell
+.\loadtest.ps1 -BookId 1 -Requests 50
+```
+
+Les requêtes sont réparties sur les 3 instances (8081, 8083, 8084).
+
+## Structure du projet
+
+```
+.
+├── book-service/          # Service de gestion des livres
+├── pricing-service/       # Service de calcul de prix
+├── docker-compose.yml     # Configuration Docker
+├── loadtest.sh           # Script de test de charge (Linux/Mac)
+└── loadtest.ps1          # Script de test de charge (Windows)
+```
+
+## Observabilité
+
+Les endpoints Actuator sont exposés pour le monitoring :
+- `/actuator/health` : État de santé
+- `/actuator/metrics` : Métriques
+- `/actuator/info` : Informations
+
+## Fonctionnalités
+
+- Gestion de la concurrence avec verrous MySQL (`SELECT FOR UPDATE`)
+- Circuit breaker et retry avec Resilience4j
+- Tests de charge avec distribution sur plusieurs instances
+- Observabilité avec Spring Boot Actuator
